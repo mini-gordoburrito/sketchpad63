@@ -1,0 +1,775 @@
+/* ── Sketchpad'63 — design system tokens (canonical, from sketchpad-design-system.html) ── */
+
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/pixelifysans-700.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/geist-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/geist-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/geist-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/geist-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/geistmono-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/geistmono-500.woff2') format('woff2');
+}
+
+:root {
+  /* Foundation */
+  --paper:        #F5F1E8;
+  --paper-deep:   #ECE6D6;
+  --paper-card:   #FFFCF4;
+  --ink:          #1A1814;
+  --ink-soft:     #4A453C;
+  --ink-faded:    #8A8377;
+  --line-soft:    #D4CDB8;
+
+  /* Accents */
+  --orange:       #FF5A1F;
+  --orange-deep:  #E04510;
+  --pink:         #FF8FA8;
+  --butter:       #FFD66B;
+  --blue:         #3D5AFF;
+  --blue-deep:    #2940D9;
+  --blue-soft:    #B8C4FF;
+
+  /* Geometry */
+  --line:         var(--ink);
+  --border-w:     2.5px;
+  --border-thicc: 3.5px;
+  --r-sm:         8px;
+  --r-md:         14px;
+  --r-lg:         20px;
+  --r-pill:       999px;
+
+  --shadow-sm:    0 2px 0 0 var(--line);
+  --shadow-md:    0 4px 0 0 var(--line);
+  --shadow-lg:    0 6px 0 0 var(--line);
+  --shadow-xl:    0 8px 0 0 var(--line);
+  --shadow-press: 0 1px 0 0 var(--line);
+
+  /* Typography */
+  --font-display: 'Pixelify Sans', ui-monospace, monospace;
+  --font-body:    'Geist', system-ui, sans-serif;
+  --font-mono:    'Geist Mono', ui-monospace, monospace;
+
+  --sidebar-w:    300px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  color-scheme: light;
+}
+html, body {
+  width: 100%;
+  height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  /* Paper background — no tiny wallpaper dots; the in-scene DotGrid is now
+   * the only dot affordance and a wallpaper underneath competes with it. */
+  background-image: none;
+  overflow: hidden;
+}
+
+.mono { font-family: var(--font-mono); }
+
+/* ── Stage layout ── */
+#stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr var(--sidebar-w);
+  user-select: none;
+  -webkit-user-select: none;
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+}
+
+.canvas-region {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper-card);
+  /* Two soft tinted washes only — no dot wallpaper. The 3D DotGrid is the
+   * single source of dot affordance now. */
+  background-image:
+    radial-gradient(circle at 18% 28%, rgba(255,214,107,0.16), transparent 55%),
+    radial-gradient(circle at 82% 72%, rgba(61,90,255,0.10), transparent 55%);
+  background-size: auto, auto;
+  border: var(--border-thicc) solid var(--ink);
+  border-right: none;
+  margin: 14px 0 14px 14px;
+  border-radius: var(--r-lg) 0 0 var(--r-lg);
+  box-shadow: var(--shadow-xl);
+  cursor: crosshair;
+}
+
+.canvas-region::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 1.5px dashed var(--line-soft);
+  border-radius: calc(var(--r-lg) - 8px);
+  pointer-events: none;
+}
+
+#three-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: transparent;
+  touch-action: none;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── Watermark ── */
+.watermark {
+  position: absolute;
+  top: 22px;
+  left: 32px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 36px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* ── Smart cursor floating label ── */
+.cursor-label {
+  position: absolute;
+  top: 0; left: 0;
+  background: var(--paper-card);
+  border: var(--border-w) solid var(--ink);
+  border-radius: var(--r-md);
+  padding: 6px 12px 6px 16px;
+  font-size: 11px;
+  display: inline-grid;
+  grid-template-rows: auto auto;
+  gap: 2px;
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease, transform 80ms ease;
+  will-change: transform;
+}
+
+.cursor-label__bar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 5px;
+  background: var(--blue);
+  border-radius: var(--r-sm) 0 0 var(--r-sm);
+}
+.cursor-label__title { color: var(--ink); font-size: 12px; }
+.cursor-label__sub   { color: var(--ink-soft); font-size: 10px; font-family: var(--font-mono); font-weight: 500; }
+
+#stage[data-cursor-state="drawing"] .cursor-label {
+  background: var(--orange);
+  border-color: var(--ink);
+  color: var(--paper-card);
+}
+#stage[data-cursor-state="drawing"] .cursor-label__title,
+#stage[data-cursor-state="drawing"] .cursor-label__sub { color: var(--paper-card); }
+#stage[data-cursor-state="drawing"] .cursor-label__bar { background: var(--butter); }
+
+#stage[data-cursor-state="snap"] .cursor-label {
+  border-color: var(--orange);
+  background: var(--paper-card);
+}
+#stage[data-cursor-state="snap"] .cursor-label__title { color: var(--orange); }
+#stage[data-cursor-state="snap"] .cursor-label__sub   { color: var(--blue); }
+#stage[data-cursor-state="snap"] .cursor-label__bar   { background: var(--orange); }
+
+/* ── Inline grid-snap chip rendered at cursor ── */
+.snap-chip {
+  position: absolute;
+  top: 0; left: 0;
+  background: var(--ink);
+  color: var(--butter);
+  border: var(--border-w) solid var(--ink);
+  border-radius: var(--r-sm);
+  padding: 4px 9px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  z-index: 6;
+  box-shadow: var(--shadow-sm);
+  transform: translate(8px, -28px);
+  white-space: nowrap;
+}
+.snap-chip[hidden] { display: none; }
+
+/* ── 2D SVG cursor overlay (per-tool) ── */
+.cursor-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+.cursor-overlay svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+}
+.cursor-overlay [data-role="cursor-svg"] {
+  will-change: transform;
+}
+#three-canvas[data-cursor-mode="hand"] {
+  cursor: grab;
+}
+#three-canvas[data-cursor-mode="hand"]:active {
+  cursor: grabbing;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--paper-card);
+  border-left: var(--border-thicc) solid var(--ink);
+  border-top: var(--border-thicc) solid var(--ink);
+  border-bottom: var(--border-thicc) solid var(--ink);
+  border-right: var(--border-thicc) solid var(--ink);
+  border-radius: 0 var(--r-lg) var(--r-lg) 0;
+  margin: 14px 14px 14px 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  box-shadow: var(--shadow-xl);
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-faded) var(--paper-deep);
+}
+.sidebar::-webkit-scrollbar { width: 8px; }
+.sidebar::-webkit-scrollbar-track { background: var(--paper-deep); }
+.sidebar::-webkit-scrollbar-thumb { background: var(--ink-faded); border-radius: var(--r-pill); }
+
+.sidebar__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 18px 18px 14px;
+  border-bottom: var(--border-w) solid var(--ink);
+  background: var(--butter);
+}
+.sidebar__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.sidebar__eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.sidebar__section {
+  padding: 14px 16px;
+  border-bottom: 1.5px dashed var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar__heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  text-transform: lowercase;
+}
+
+/* ── Segmented control (2D / 3D) ── */
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: var(--border-w) solid var(--ink);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  background: var(--paper-deep);
+  box-shadow: var(--shadow-sm);
+}
+.seg {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+  touch-action: manipulation;
+}
+.seg + .seg { border-left: var(--border-w) solid var(--ink); }
+.seg[aria-pressed="true"] {
+  background: var(--blue);
+  color: var(--paper-card);
+}
+
+/* ── Tools ── */
+.tool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tool {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--paper-card);
+  border: var(--border-w) solid var(--ink);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.01em;
+  box-shadow: var(--shadow-sm);
+  transition: transform 100ms ease, box-shadow 100ms ease, background 120ms ease, color 120ms ease;
+  text-align: left;
+  touch-action: manipulation;
+}
+.tool:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.tool:active { transform: translateY(1px); box-shadow: var(--shadow-press); }
+.tool__glyph {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: var(--border-w) solid var(--ink);
+  border-radius: var(--r-sm);
+  background: var(--paper-deep);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.tool__label { flex: 1; }
+.tool--active,
+.tool[aria-pressed="true"] {
+  background: var(--blue);
+  color: var(--paper-card);
+}
+.tool--active .tool__glyph,
+.tool[aria-pressed="true"] .tool__glyph {
+  background: var(--blue-deep);
+  color: var(--paper-card);
+}
+
+/* ── Ink swatches ── */
+.ink-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.ink {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--c);
+  border: var(--border-w) solid var(--ink);
+  cursor: pointer;
+  padding: 0;
+  box-shadow: var(--shadow-sm);
+  transition: transform 100ms ease, box-shadow 120ms ease;
+  touch-action: manipulation;
+}
+.ink:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.ink:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.ink--active {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px var(--orange), var(--shadow-sm);
+}
+
+/* ── Snap chips ── */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  font-family: var(--font-display);
+  font-weight: 700;
+  background: var(--paper-card);
+  border: var(--border-w) solid var(--ink);
+  border-radius: var(--r-pill);
+  padding: 5px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  transition: transform 100ms ease, background 120ms ease, color 120ms ease;
+  touch-action: manipulation;
+}
+.chip:hover { transform: translateY(-1px); }
+.chip--active,
+.chip[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper-card);
+}
+
+/* ── Buttons ── */
+.btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  background: var(--paper-card);
+  border: var(--border-w) solid var(--ink);
+  border-radius: var(--r-pill);
+  padding: 9px 16px;
+  cursor: pointer;
+  color: var(--ink);
+  box-shadow: var(--shadow-md);
+  transition: transform 100ms ease, box-shadow 100ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  touch-action: manipulation;
+}
+.btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.btn:active { transform: translateY(2px); box-shadow: var(--shadow-press); }
+.btn--primary { background: var(--blue); color: var(--paper-card); }
+.btn--accent  { background: var(--orange); color: var(--paper-card); }
+
+/* ── Radio row (Hands / Pose) ── */
+.radio-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.radio {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  background: var(--paper-card);
+  border: var(--border-w) solid var(--ink);
+  border-radius: var(--r-pill);
+  padding: 7px 10px;
+  cursor: pointer;
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  transition: transform 100ms ease, background 120ms ease, color 120ms ease;
+  touch-action: manipulation;
+}
+.radio:hover { transform: translateY(-1px); }
+.radio--active,
+.radio[aria-checked="true"] {
+  background: var(--ink);
+  color: var(--butter);
+}
+
+/* ── Slider row (sensitivity) ── */
+.slider-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+}
+.slider-row__label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+}
+.slider-row__value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+  text-align: right;
+}
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 14px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.slider::-webkit-slider-runnable-track {
+  height: 6px;
+  background: var(--paper-card);
+  border: 1.6px solid var(--ink);
+  border-radius: 999px;
+}
+.slider::-moz-range-track {
+  height: 6px;
+  background: var(--paper-card);
+  border: 1.6px solid var(--ink);
+  border-radius: 999px;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--orange);
+  border: 1.6px solid var(--ink);
+  border-radius: 50%;
+  margin-top: -7px;
+  box-shadow: var(--shadow-sm);
+}
+.slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--orange);
+  border: 1.6px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+}
+.slider:focus-visible {
+  outline: 2.5px solid var(--blue);
+  outline-offset: 4px;
+}
+
+/* ── Checkbox row (scope) ── */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  margin-top: 4px;
+  user-select: none;
+}
+.check {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--orange);
+  cursor: pointer;
+}
+
+/* ── Keyboard shortcut badges ──
+ * Hidden by default; revealed once the user actually presses a key (the body
+ * gets data-keyboard-mode="true"). Stays visible until they go ~6s without
+ * any keyboard input, at which point it fades out.
+ */
+.tool__kbd, .seg__kbd, .btn__kbd, .check-row__kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 1;
+  background: var(--paper-card);
+  color: var(--ink-soft);
+  border: 1.4px solid var(--ink);
+  border-radius: 5px;
+  padding: 2px 5px;
+  min-width: 14px;
+  height: 16px;
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+body[data-keyboard-mode="true"] .tool__kbd,
+body[data-keyboard-mode="true"] .seg__kbd,
+body[data-keyboard-mode="true"] .btn__kbd,
+body[data-keyboard-mode="true"] .check-row__kbd {
+  opacity: 1;
+  transform: scale(1);
+}
+.tool__kbd { margin-left: auto; }
+.seg__kbd  { margin-left: 6px; align-self: center; }
+.btn__kbd  { margin-left: 8px; }
+.check-row__kbd { margin-left: auto; }
+/* The pencil shortcut "1" should still feel quiet on the active tool */
+.tool--active .tool__kbd { background: var(--ink); color: var(--paper); border-color: var(--paper); }
+
+/* ── Hint text ── */
+.hint {
+  font-size: 11px;
+  color: var(--ink-faded);
+  line-height: 1.5;
+  border-top: 1.5px dashed var(--line-soft);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+/* ── Coord HUD (sidebar bottom) ── */
+.sidebar__hud {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px 18px;
+  background: var(--ink);
+  color: var(--butter);
+  border-top: var(--border-w) solid var(--ink);
+}
+.sidebar__hud-label {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--butter-deep, #F5BC3D);
+  opacity: 0.7;
+}
+.coord {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  color: var(--butter);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Focus ring (accessibility) ── */
+button:focus-visible,
+.tool:focus-visible,
+.chip:focus-visible,
+.seg:focus-visible,
+.radio:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* ── Camera preview (picture-in-picture) ── */
+.cam-preview-panel {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  width: 240px;
+  /* 16:9 canvas + label/fps chrome */
+  display: grid;
+  grid-template-rows: auto 135px auto;
+  gap: 4px;
+  padding: 6px 8px 6px 8px;
+  background: var(--paper-card);
+  border: var(--border-w) solid var(--ink);
+  border-radius: var(--r-md);
+  box-shadow: 4px 4px 0 0 var(--ink);
+  z-index: 7;
+  pointer-events: none;
+}
+.cam-preview-panel[hidden] { display: none; }
+
+.cam-preview__label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+
+.cam-preview__canvas {
+  width: 100%;
+  height: 135px;
+  display: block;
+  background: var(--paper-deep);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--r-sm);
+}
+
+.cam-preview__fps {
+  justify-self: end;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.cam-preview__video {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

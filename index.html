@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#F5F1E8" />
+  <title>Sketchpad'63 — 3D drawing canvas</title>
+  <link rel="preload" as="font" type="font/woff2" href="/fonts/pixelifysans-700.woff2" crossorigin />
+  <link rel="preload" as="font" type="font/woff2" href="/fonts/geist-400.woff2" crossorigin />
+  <link rel="preload" as="font" type="font/woff2" href="/fonts/geistmono-400.woff2" crossorigin />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <main id="stage" data-role="stage" data-mode="3d" data-cursor-state="idle">
+    <!-- Canvas region -->
+    <section class="canvas-region" data-role="canvas-region">
+      <canvas id="three-canvas" role="img" aria-label="Sketchpad drawing canvas"></canvas>
+
+      <!-- Brand watermark -->
+      <div class="watermark" data-role="watermark" translate="no" aria-hidden="true">Sketchpad'63</div>
+
+      <!-- Smart cursor floating label (anchored over canvas) -->
+      <div class="cursor-label" data-role="cursor-label" id="cursor-label" aria-hidden="true">
+        <span class="cursor-label__bar" data-role="cursor-bar"></span>
+        <span class="cursor-label__title" data-role="cursor-title">PENCIL</span>
+        <span class="cursor-label__sub mono" data-role="cursor-sub">#1A1814</span>
+      </div>
+
+      <!-- Inline grid-snap chip rendered at the cursor when grid snap fires -->
+      <div class="snap-chip" data-role="snap-chip" id="snap-chip" hidden>
+        <span class="mono" data-role="snap-chip-label">grid</span>
+      </div>
+
+      <!-- 2D SVG cursor overlay (replaces 3D pencil mesh) -->
+      <div class="cursor-overlay" data-role="cursor-overlay" id="cursor-overlay" data-cursor-tool="pencil" aria-hidden="true"></div>
+
+      <!-- Camera preview (picture-in-picture, hidden until camera is running) -->
+      <aside class="cam-preview-panel" data-role="cam-preview" aria-label="Camera preview" hidden>
+        <span class="cam-preview__label mono" data-role="cam-preview-label">HANDS</span>
+        <canvas class="cam-preview__canvas" data-role="cam-preview-canvas" width="240" height="135" aria-hidden="true"></canvas>
+        <span class="cam-preview__fps mono" data-role="cam-preview-fps">-- fps</span>
+        <video class="cam-preview__video" data-role="cam-preview-video" muted playsinline aria-hidden="true"></video>
+      </aside>
+    </section>
+
+    <!-- ── RIGHT SIDEBAR (always visible) ── -->
+    <aside class="sidebar" data-role="sidebar" aria-label="Sketchpad controls">
+      <header class="sidebar__brand">
+        <h1 class="sidebar__title" translate="no">Sketchpad'63</h1>
+        <span class="sidebar__eyebrow mono">v0.3 · sutherland</span>
+      </header>
+
+      <!-- 2D / 3D segmented control -->
+      <section class="sidebar__section" data-section="mode">
+        <h3 class="sidebar__heading">View</h3>
+        <div class="segmented" role="group" aria-label="View mode">
+          <button class="seg" type="button" data-mode-set="2d" aria-pressed="false">2D</button>
+          <button class="seg" type="button" data-mode-set="3d" aria-pressed="true">3D</button>
+          <kbd class="seg__kbd mono" aria-label="shortcut: V">V</kbd>
+        </div>
+      </section>
+
+      <!-- Tools list -->
+      <section class="sidebar__section" data-section="tools">
+        <h3 class="sidebar__heading">Tools</h3>
+        <div class="tool-list" data-role="tool-dock">
+          <button class="tool tool--active" type="button" data-tool="pencil" aria-pressed="true">
+            <span class="tool__glyph mono" aria-hidden="true">✎</span>
+            <span class="tool__label">Pencil</span>
+            <kbd class="tool__kbd mono" aria-label="shortcut">1</kbd>
+          </button>
+          <button class="tool" type="button" data-tool="line" aria-pressed="false">
+            <span class="tool__glyph mono" aria-hidden="true">/</span>
+            <span class="tool__label">Line</span>
+            <kbd class="tool__kbd mono" aria-label="shortcut">2</kbd>
+          </button>
+          <button class="tool" type="button" data-tool="polygon" aria-pressed="false">
+            <span class="tool__glyph mono" aria-hidden="true">◇</span>
+            <span class="tool__label">Polygon</span>
+            <kbd class="tool__kbd mono" aria-label="shortcut">3</kbd>
+          </button>
+          <button class="tool" type="button" data-tool="eraser" aria-pressed="false">
+            <span class="tool__glyph mono" aria-hidden="true">⌫</span>
+            <span class="tool__label">Eraser</span>
+            <kbd class="tool__kbd mono" aria-label="shortcut">4</kbd>
+          </button>
+          <button class="tool" type="button" data-tool="hand" aria-pressed="false">
+            <span class="tool__glyph mono" aria-hidden="true">✋</span>
+            <span class="tool__label">Hand</span>
+            <kbd class="tool__kbd mono" aria-label="shortcut">5</kbd>
+          </button>
+        </div>
+      </section>
+
+      <!-- Ink swatches -->
+      <section class="sidebar__section" data-section="ink">
+        <h3 class="sidebar__heading">Ink</h3>
+        <div class="ink-row" data-role="ink-dock">
+          <button class="ink ink--active" type="button" data-ink="#1A1814" style="--c:#1A1814" aria-label="Black ink" aria-pressed="true"></button>
+          <button class="ink" type="button" data-ink="#FF5A1F" style="--c:#FF5A1F" aria-label="Orange ink" aria-pressed="false"></button>
+          <button class="ink" type="button" data-ink="#3D5AFF" style="--c:#3D5AFF" aria-label="Blue ink" aria-pressed="false"></button>
+          <button class="ink" type="button" data-ink="#FF8FA8" style="--c:#FF8FA8" aria-label="Pink ink" aria-pressed="false"></button>
+          <button class="ink" type="button" data-ink="#FFD66B" style="--c:#FFD66B" aria-label="Butter ink" aria-pressed="false"></button>
+          <button class="ink" type="button" data-ink="#FFFCF4" style="--c:#FFFCF4" aria-label="Light ink" aria-pressed="false"></button>
+        </div>
+      </section>
+
+      <!-- Snap chips -->
+      <section class="sidebar__section" data-section="snap">
+        <h3 class="sidebar__heading">Snap</h3>
+        <div class="chip-row" data-role="snap-dock">
+          <button class="chip chip--active" type="button" data-snap="vertex" aria-pressed="true">vertex</button>
+          <button class="chip chip--active" type="button" data-snap="edge" aria-pressed="true">edge</button>
+          <button class="chip" type="button" data-snap="parallel" aria-pressed="false">parallel</button>
+          <button class="chip chip--active" type="button" data-snap="grid" aria-pressed="true">grid</button>
+        </div>
+        <label class="slider-row" for="grid-size">
+          <span class="slider-row__label">Grid size</span>
+          <input class="slider" id="grid-size" type="range" min="0.1" max="1" step="0.05" value="0.25" data-action="grid-size" aria-label="Grid spacing in world units">
+          <output class="slider-row__value mono" id="grid-size-value">0.25</output>
+        </label>
+      </section>
+
+      <!-- Camera + tracker -->
+      <section class="sidebar__section" data-section="camera">
+        <h3 class="sidebar__heading">Camera</h3>
+        <button class="btn btn--primary" type="button" data-action="camera-start" id="btn-camera">
+          Start camera
+        </button>
+        <div class="radio-row" role="radiogroup" aria-label="Tracker mode">
+          <button class="radio radio--active" type="button" data-tracker="hands" id="btn-tracker-hands" role="radio" aria-checked="true">Hands</button>
+          <button class="radio" type="button" data-tracker="pose" id="btn-tracker-pose" role="radio" aria-checked="false">Pose</button>
+        </div>
+        <label class="slider-row" for="sensitivity">
+          <span class="slider-row__label">Sensitivity</span>
+          <input class="slider" id="sensitivity" type="range" min="0.25" max="4" step="0.05" value="1" data-action="sensitivity" aria-label="Hand-tracking sensitivity">
+          <output class="slider-row__value mono" id="sensitivity-value">1.00&times;</output>
+        </label>
+        <label class="check-row" for="scope">
+          <input class="check" id="scope" type="checkbox" data-action="scope" aria-label="Show camera scope wireframe" checked>
+          <span>Show scope</span>
+          <kbd class="check-row__kbd mono" aria-label="shortcut">G</kbd>
+        </label>
+      </section>
+
+      <!-- Joy-Con -->
+      <section class="sidebar__section" data-section="joycon">
+        <h3 class="sidebar__heading">Wand</h3>
+        <button class="btn btn--accent" type="button" data-action="joycon-connect" id="btn-joycon">
+          Connect <span translate="no">Joy-Con</span>
+        </button>
+        <button class="btn" type="button" data-action="recenter" id="btn-recenter">
+          Recenter
+          <kbd class="btn__kbd mono" aria-label="shortcut">X</kbd>
+        </button>
+        <p class="hint mono"><span translate="no">WebHID</span> &middot; <span translate="no">Chrome&nbsp;/&nbsp;Edge</span> &middot; localhost or HTTPS.</p>
+      </section>
+
+      <!-- Coord HUD -->
+      <footer class="sidebar__hud">
+        <span class="sidebar__hud-label mono" id="coord-label">coords</span>
+        <output class="coord mono" data-role="coord" id="coord-hud" aria-live="polite" aria-labelledby="coord-label">x:000 y:000 z:000</output>
+      </footer>
+    </aside>
+  </main>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
