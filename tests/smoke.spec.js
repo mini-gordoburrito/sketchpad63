@@ -575,6 +575,30 @@ test.describe('Sketchpad\'63 smoke', () => {
     expect(mode).toBe('true');
   });
 
+  test('41. pointerToWorld in 3D follows the orbited work plane (clicks can land at non-zero Z)', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const s = window.__app__.scene;
+      s.setMode('3d');
+      // Orbit the camera so the view direction is significantly off the Z axis.
+      // Move camera up + forward so view direction has a notable Y component.
+      s.cameraPersp.position.set(0, 3, 3);
+      s.cameraPersp.lookAt(s.controls.target);
+      s.controls.update();
+      // 2D-mode work plane would always give z=0. The 3D work plane is now
+      // perpendicular to camera direction through controls.target, so a click
+      // away from the screen centre lands at a point with non-zero Z.
+      const rect = s.canvas.getBoundingClientRect();
+      // Pick a point off-centre so the ray doesn't pass through the orbit target
+      const cx = rect.left + rect.width * 0.25;
+      const cy = rect.top + rect.height * 0.25;
+      const w = s.pointerToWorld(cx, cy);
+      return { x: w.x, y: w.y, z: w.z };
+    });
+    // We can't predict exact numbers (depends on canvas size + camera), but Z
+    // must be measurably non-zero now that the work plane tracks the view.
+    expect(Math.abs(result.z)).toBeGreaterThan(0.05);
+  });
+
   test('39. OrbitControls is wired in 3D mode and disabled in 2D mode', async ({ page }) => {
     const result = await page.evaluate(() => {
       const s = window.__app__.scene;

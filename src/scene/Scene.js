@@ -205,9 +205,28 @@ export class Scene {
   }
 
   /**
-   * Convert pointer event → world-space point on the work plane.
-   * In 3D: plane at z=0 (looking down −z).
-   * In 2D: same plane (orthographic looks down -Z onto z=0).
+   * The work plane the pointer is projected onto.
+   *   • 2D mode: z = 0 (top-down).
+   *   • 3D mode: perpendicular to the camera's view direction, passing through
+   *     the orbit target. As the user orbits, the work plane rotates with the
+   *     view — so pointer clicks can land at any (x,y,z) and per-axis grid
+   *     snap engages on every axis instead of just X/Y.
+   * @returns {THREE.Plane}
+   */
+  getWorkPlane() {
+    if (this.mode === '2d') {
+      return new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+    }
+    const normal = new THREE.Vector3();
+    this.camera.getWorldDirection(normal); // points from camera into scene
+    const target = this.controls?.target ?? new THREE.Vector3(0, 0.6, 0);
+    // Plane equation n·x + d = 0 with d = -n·target so the plane contains target
+    const d = -normal.dot(target);
+    return new THREE.Plane(normal, d);
+  }
+
+  /**
+   * Convert pointer event → world-space point on the active work plane.
    */
   pointerToWorld(eventClientX, eventClientY) {
     const rect = this.canvas.getBoundingClientRect();
@@ -217,11 +236,10 @@ export class Scene {
     );
     const ray = new THREE.Raycaster();
     ray.setFromCamera(ndc, this.camera);
-    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-    const target = new THREE.Vector3();
-    ray.ray.intersectPlane(plane, target);
-    if (!target) return new THREE.Vector3(0, 0, 0);
-    return target;
+    const out = new THREE.Vector3();
+    const hit = ray.ray.intersectPlane(this.getWorkPlane(), out);
+    if (!hit) return new THREE.Vector3(0, 0, 0);
+    return out;
   }
 
   _resize() {
