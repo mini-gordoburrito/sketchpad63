@@ -113,6 +113,30 @@ export class Pose extends EventTarget {
     return { x, y, z };
   }
 
+  /**
+   * Camera-relative Z from a Hand landmark array. MediaPipe's per-landmark `z`
+   * is wrist-relative depth (useless for cursor Z), so we use the projected
+   * hand size on the image as a depth proxy. Bigger hand on screen = closer
+   * to camera. Maps to "away from camera = +z forward" to match the rest of
+   * the coordinate convention.
+   *
+   * @param {Array<{x:number,y:number,z?:number}>} hand 21-landmark hand
+   * @param {number} sensitivity overall mapping sensitivity
+   * @returns {number} world-space Z, clamped to a sensible range
+   */
+  static computeZFromHandSize(hand, sensitivity = 1) {
+    if (!hand || hand.length <= 9) return 0;
+    const a = hand[0];  // wrist
+    const b = hand[9];  // middle_finger_mcp
+    const size = Math.hypot(a.x - b.x, a.y - b.y); // normalised image coords
+    // Reference size: a hand at "comfortable arm's length" subtends ~0.12 of
+    // the image. Tune Z_SCALE for response speed.
+    const REF_SIZE = 0.12;
+    const Z_SCALE  = 4.0;
+    const z = (REF_SIZE - size) * Z_SCALE * sensitivity;
+    return Math.max(-1.5, Math.min(1.5, z));
+  }
+
   async _ensureFileset() {
     if (this.fileset) return this.fileset;
     const { FilesetResolver } = await import('@mediapipe/tasks-vision');
@@ -224,12 +248,15 @@ export class Pose extends EventTarget {
         const result = this.handLandmarker.detectForVideo(v, tNow);
         const hand = result.landmarks?.[0];
         const handednessLabel = result.handedness?.[0]?.[0]?.categoryName;
-        if (hand && hand.length > 5) {
+        if (hand && hand.length > 9) {
           this._latest = { mode: 'hands', landmarks: hand, handedness: handednessLabel };
           this.dispatchEvent(new CustomEvent('pose-frame', { detail: this._latest }));
           // Index finger MCP = landmark 5 in MediaPipe Hands.
           const lm = hand[5];
-          this._emitPosition(lm.x, lm.y, lm.z, 0.95);
+          // Camera-relative Z proxy: bigger hand on screen = closer to camera.
+          // Wrist (0) to middle_finger_mcp (9) gives a stable "palm width" line.
+          const zWorld = Pose.computeZFromHandSize(hand, this.sensitivity);
+          this._emitPosition(lm.x, lm.y, 0, 0.95, zWorld);
         } else {
           this._latest = { mode: 'hands', landmarks: [], handedness: undefined };
           this.dispatchEvent(new CustomEvent('pose-frame', { detail: this._latest }));
@@ -254,11 +281,13 @@ export class Pose extends EventTarget {
     }
   }
 
-  _emitPosition(nx, ny, nz, confidence) {
+  _emitPosition(nx, ny, nz, confidence, zWorldOverride) {
     const w = Pose.computeWorldFromLandmark({ x: nx, y: ny, z: nz }, { sensitivity: this.sensitivity });
     const x = w.x + this.offsetX;
     const y = w.y + this.offsetY;
-    const z = w.z;
+    // Hands mode passes an override because MediaPipe's per-landmark z is
+    // wrist-relative depth, not camera-relative — useless for cursor Z.
+    const z = zWorldOverride !== undefined ? zWorldOverride : w.z;
     const t = performance.now() / 1000;
     this.fusion.ingestPosition({ x, y, z, t, confidence });
     this.dispatchEvent(new CustomEvent('sample', { detail: { x, y, z, confidence } }));

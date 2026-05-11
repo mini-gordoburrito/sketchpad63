@@ -575,6 +575,33 @@ test.describe('Sketchpad\'63 smoke', () => {
     expect(mode).toBe('true');
   });
 
+  test('42. Hands Z is driven by projected hand size — pushing hand away (smaller) yields +z forward', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const Pose = window.__app__.pose.constructor;
+      const makeHand = (size) => {
+        // 21 landmarks; we only need 0 (wrist) and 9 (middle_mcp) for the
+        // hand-size proxy. Place wrist at (0.5, 0.5) and 9 straight up so the
+        // distance equals `size` exactly.
+        const lm = Array.from({ length: 21 }, () => ({ x: 0.5, y: 0.5, z: 0 }));
+        lm[9] = { x: 0.5, y: 0.5 - size, z: 0 };
+        return lm;
+      };
+      const zSmall  = Pose.computeZFromHandSize(makeHand(0.06), 1); // far away
+      const zMedium = Pose.computeZFromHandSize(makeHand(0.12), 1); // reference
+      const zBig    = Pose.computeZFromHandSize(makeHand(0.22), 1); // very close
+      return { zSmall, zMedium, zBig };
+    });
+    // Smaller hand on screen → hand is further from camera → cursor moves forward (+z)
+    expect(result.zSmall).toBeGreaterThan(0.1);
+    // Reference size → ~0
+    expect(Math.abs(result.zMedium)).toBeLessThan(0.05);
+    // Bigger hand on screen → hand is closer to camera → cursor moves back (-z)
+    expect(result.zBig).toBeLessThan(-0.2);
+    // Ordering must be strictly monotonic
+    expect(result.zSmall).toBeGreaterThan(result.zMedium);
+    expect(result.zMedium).toBeGreaterThan(result.zBig);
+  });
+
   test('41. pointerToWorld in 3D follows the orbited work plane (clicks can land at non-zero Z)', async ({ page }) => {
     const result = await page.evaluate(() => {
       const s = window.__app__.scene;
